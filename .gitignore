@@ -1,0 +1,9 @@
+# Grain
+*.wasm
+*.gr.wasm
+*.gro
+
+# Generic
+*.local.*
+
+.DS_Store

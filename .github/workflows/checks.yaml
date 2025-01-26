@@ -1,0 +1,40 @@
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    name: Run checks
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v3
+
+      - name: Fetch grain binary
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'grain-lang/grain'
+          version: 'tags/preview'
+          file: 'grain-linux-x64'
+          target: grain
+          token: ${{ secrets.GITHUB_TOKEN }
+
+      # This is to test the CLI is working
+      - name: Log Grain version
+        if: matrix.os != 'windows-latest'
+        run: |
+          ./grain -v
+
+      - name: Log Grain version
+        if: matrix.os == 'windows-latest'
+        run: |
+          ./grain.exe -v
+
+      - name: Run develop checks
+        run: |
+          bash develop.sh
+          git diff --exit-code --name-only
+      

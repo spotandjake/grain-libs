@@ -1,0 +1,297 @@
+module Stream
+
+from "runtime/numbers" include Numbers
+use Numbers.{ coerceUint8ToNumber }
+from "bytes" include Bytes
+from "uint8" include Uint8
+from "int64" include Int64
+from "string" include String
+from "char" include Char
+
+provide let charByteCount = c => {
+  // TODO: upstream Char.byteCount(encoding=UTf8, value)
+  let usv = Char.code(c)
+  if (usv <= 0x007F) {
+    1
+  } else if (usv <= 0x07FF) {
+    2
+  } else if (usv <= 0xFFFF) {
+    3
+  } else {
+    4
+  }
+}
+
+abstract record Stream {
+  bytes: Bytes,
+  size: Number,
+  mut pos: Number,
+  mut line: Number,
+  mut column: Number,
+}
+
+provide let fromBytes = bytes => {
+  { bytes, size: Bytes.length(bytes), pos: 0, line: 1, column: 1 }
+}
+
+provide let fromString = string => {
+  fromBytes(Bytes.fromString(string))
+}
+
+provide let isEmpty = stream => {
+  stream.size == stream.pos
+}
+
+provide let advance = (byteCount, stream) => {
+  stream.pos += byteCount
+  stream.column += stream.column
+}
+
+provide let advanceLine = stream => {
+  stream.line += 1
+  stream.column = 1
+}
+
+provide let getPosition = stream => {
+  stream.pos
+}
+
+provide let getLine = stream => {
+  stream.line
+}
+
+provide let getColumn = stream => {
+  stream.column
+}
+
+provide let getBytes = stream => {
+  stream.bytes
+}
+
+module Internal {
+  provide let char = stream => {
+    let result = Bytes.getChar(stream.pos, stream.bytes)
+    (charByteCount(result), result)
+  }
+}
+
+provide module Get {
+  provide let byte = stream => {
+    Bytes.getUint8(stream.pos, stream.bytes)
+  }
+  provide let bytes = (byteCount, stream) => {
+    Bytes.slice(stream.pos, byteCount, stream.bytes)
+  }
+  provide let int64 = stream => {
+    Bytes.getInt64(stream.pos, stream.bytes)
+  }
+  provide let int32 = stream => {
+    Bytes.getInt32(stream.pos, stream.bytes)
+  }
+  provide let int16 = stream => {
+    Bytes.getInt16(stream.pos, stream.bytes)
+  }
+  provide let int8 = stream => {
+    Bytes.getInt8(stream.pos, stream.bytes)
+  }
+  provide let uInt64 = stream => {
+    Bytes.getUint64(stream.pos, stream.bytes)
+  }
+  provide let uInt32 = stream => {
+    Bytes.getUint32(stream.pos, stream.bytes)
+  }
+  provide let uInt16 = stream => {
+    Bytes.getUint16(stream.pos, stream.bytes)
+  }
+  provide let uInt8 = stream => {
+    Bytes.getUint8(stream.pos, stream.bytes)
+  }
+  provide let float64 = stream => {
+    Bytes.getFloat64(stream.pos, stream.bytes)
+  }
+  provide let float32 = stream => {
+    Bytes.getFloat32(stream.pos, stream.bytes)
+  }
+  provide let char = stream => {
+    Bytes.getChar(stream.pos, stream.bytes)
+  }
+}
+
+provide module GetAndAdvance {
+  provide let byte = stream => {
+    let byte = Get.byte(stream)
+    advance(1, stream)
+    byte
+  }
+  provide let bytes = (byteCount, stream) => {
+    let bytes = Get.bytes(byteCount, stream)
+    advance(byteCount, stream)
+    bytes
+  }
+  provide let int64 = stream => {
+    let value = Get.int64(stream)
+    advance(8, stream)
+    value
+  }
+  provide let int32 = stream => {
+    let value = Get.int32(stream)
+    advance(4, stream)
+    value
+  }
+  provide let int16 = stream => {
+    let value = Get.int16(stream)
+    advance(2, stream)
+    value
+  }
+  provide let int8 = stream => {
+    let value = Get.int8(stream)
+    advance(1, stream)
+    value
+  }
+  provide let uint64 = stream => {
+    let value = Get.uInt64(stream)
+    advance(8, stream)
+    value
+  }
+  provide let uInt32 = stream => {
+    let value = Get.uInt32(stream)
+    advance(4, stream)
+    value
+  }
+  provide let uInt16 = stream => {
+    let value = Get.uInt16(stream)
+    advance(2, stream)
+    value
+  }
+  provide let uInt8 = stream => {
+    let value = Get.uInt8(stream)
+    advance(1, stream)
+    value
+  }
+  provide let float64 = stream => {
+    let value = Get.float64(stream)
+    advance(8, stream)
+    value
+  }
+  provide let float32 = stream => {
+    let value = Get.float32(stream)
+    advance(4, stream)
+    value
+  }
+  provide let char = stream => {
+    let (byteCount, value) = Internal.char(stream)
+    advance(byteCount, stream)
+    value
+  }
+}
+
+module Expect {
+  provide let byte = (byte, stream) => {
+    Get.byte(stream) == byte
+  }
+  provide let bytes = (bytes, stream) => {
+    Get.bytes(Bytes.length(bytes), stream) == bytes
+  }
+  provide let int64 = (value, stream) => {
+    Get.int64(stream) == value
+  }
+  provide let int32 = (value, stream) => {
+    Get.int32(stream) == value
+  }
+  provide let int16 = (value, stream) => {
+    Get.int16(stream) == value
+  }
+  provide let int8 = (value, stream) => {
+    Get.int8(stream) == value
+  }
+  provide let uInt64 = (value, stream) => {
+    Get.uInt64(stream) == value
+  }
+  provide let uInt32 = (value, stream) => {
+    Get.uInt32(stream) == value
+  }
+  provide let uInt16 = (value, stream) => {
+    Get.uInt16(stream) == value
+  }
+  provide let uInt8 = (value, stream) => {
+    Get.uInt8(stream) == value
+  }
+  provide let float64 = (value, stream) => {
+    Get.float64(stream) == value
+  }
+  provide let float32 = (value, stream) => {
+    Get.float32(stream) == value
+  }
+  provide let char = (char, stream) => {
+    Get.char(stream) == char
+  }
+}
+
+provide module ExpectAndAdvance {
+  provide let byte = (byte, stream) => {
+    let result = Expect.byte(byte, stream)
+    if (result) advance(1, stream)
+    result
+  }
+  provide let bytes = (bytes, stream) => {
+    let result = Expect.bytes(bytes, stream)
+    if (result) advance(Bytes.length(bytes), stream)
+    result
+  }
+  provide let int64 = (value, stream) => {
+    let result = Expect.int64(value, stream)
+    if (result) advance(8, stream)
+    result
+  }
+  provide let int32 = (value, stream) => {
+    let result = Expect.int32(value, stream)
+    if (result) advance(4, stream)
+    result
+  }
+  provide let int16 = (value, stream) => {
+    let result = Expect.int16(value, stream)
+    if (result) advance(2, stream)
+    result
+  }
+  provide let int8 = (value, stream) => {
+    let result = Expect.int8(value, stream)
+    if (result) advance(1, stream)
+    result
+  }
+  provide let uInt64 = (value, stream) => {
+    let result = Expect.uInt64(value, stream)
+    if (result) advance(8, stream)
+    result
+  }
+  provide let uInt32 = (value, stream) => {
+    let result = Expect.uInt32(value, stream)
+    if (result) advance(4, stream)
+    result
+  }
+  provide let uInt16 = (value, stream) => {
+    let result = Expect.uInt16(value, stream)
+    if (result) advance(2, stream)
+    result
+  }
+  provide let uInt8 = (value, stream) => {
+    let result = Expect.uInt8(value, stream)
+    if (result) advance(1, stream)
+    result
+  }
+  provide let float64 = (value, stream) => {
+    let result = Expect.float64(value, stream)
+    if (result) advance(8, stream)
+    result
+  }
+  provide let float32 = (value, stream) => {
+    let result = Expect.float32(value, stream)
+    if (result) advance(4, stream)
+    result
+  }
+  provide let char = (value, stream) => {
+    let (byteCount, result) = Internal.char(stream)
+    let result = value == result
+    if (result) advance(byteCount, stream)
+    result
+  }
+}

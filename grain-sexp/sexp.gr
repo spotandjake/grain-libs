@@ -1,0 +1,242 @@
+/**
+ * Utilities for working with S-expressions.
+ *
+ * S-expressions are a simple and powerful way to represent data and code.
+ * They are used in many programming languages, including Lisp and Scheme.
+ *
+ * Grammer:
+ * ```ebnf
+ * sexp -> wss (atom | ('(' list)) wss
+ * list -> '(' wss sexp* ')'
+ * atom -> symbol | number
+ * ```
+ */
+module Sexp
+
+// S-Expression Libs
+from "bytes" include Bytes
+from "buffer" include Buffer
+from "char" include Char
+from "list" include List
+from "string" include String
+// Stream Libs
+from "runtime/numbers" include Numbers
+use Numbers.{ coerceUint8ToNumber }
+from "uint8" include Uint8
+from "int64" include Int64
+
+provide let charByteCount = c => {
+  // TODO: upstream Char.byteCount(encoding=UTf8, value)
+  let usv = Char.code(c)
+  if (usv <= 0x007F) {
+    1
+  } else if (usv <= 0x07FF) {
+    2
+  } else if (usv <= 0xFFFF) {
+    3
+  } else {
+    4
+  }
+}
+
+module Stream {
+  abstract record Stream {
+    bytes: Bytes,
+    size: Number,
+    mut pos: Number,
+    mut line: Number,
+    mut column: Number,
+  }
+
+  provide let fromBytes = bytes => {
+    { bytes, size: Bytes.length(bytes), pos: 0, line: 1, column: 1 }
+  }
+
+  provide let fromString = string => {
+    fromBytes(Bytes.fromString(string))
+  }
+
+  provide let isEmpty = stream => {
+    stream.size == stream.pos
+  }
+
+  provide let advance = (byteCount, stream) => {
+    stream.pos += byteCount
+    stream.column += stream.column
+  }
+
+  provide let advanceLine = stream => {
+    stream.line += 1
+    stream.column = 1
+  }
+
+  provide let getPosition = stream => {
+    stream.pos
+  }
+
+  provide let getLine = stream => {
+    stream.line
+  }
+
+  provide let getColumn = stream => {
+    stream.column
+  }
+
+  provide let getBytes = stream => {
+    stream.bytes
+  }
+
+  module Internal {
+    provide let char = stream => {
+      let result = Bytes.getChar(stream.pos, stream.bytes)
+      (charByteCount(result), result)
+    }
+  }
+
+  provide module Get {
+    provide let char = stream => {
+      Bytes.getChar(stream.pos, stream.bytes)
+    }
+  }
+
+  provide module GetAndAdvance {
+    provide let char = stream => {
+      let (byteCount, value) = Internal.char(stream)
+      advance(byteCount, stream)
+      value
+    }
+  }
+
+  module Expect {
+    provide let char = (char, stream) => {
+      Get.char(stream) == char
+    }
+  }
+
+  provide module ExpectAndAdvance {
+    provide let char = (value, stream) => {
+      let (byteCount, result) = Internal.char(stream)
+      let result = value == result
+      if (result) advance(byteCount, stream)
+      result
+    }
+  }
+}
+
+provide enum rec Sexp {
+  Atom(String),
+  List(List<Sexp>),
+}
+
+provide enum ParseError {
+  UnexpectedChar{ message: String, line: Number, column: Number },
+  UnexpectedEndOfInput{ message: String, line: Number, column: Number },
+}
+
+module Parsing {
+  // helpers
+  let buildUnexpectedCharError = (stream, expected, rule) => {
+    let found = Stream.Get.char(stream)
+    let line = Stream.getLine(stream)
+    let column = Stream.getColumn(stream)
+    let message = "Unexpected character found '" ++
+      Char.toString(found) ++
+      "', expected " ++
+      Char.toString(expected) ++
+      " in " ++
+      rule ++
+      " at line " ++
+      toString(line) ++
+      " column " ++
+      toString(column)
+    Err(UnexpectedChar{ message, line, column })
+  }
+  let buildUnexpectedEndOfInput = (stream, expected, rule) => {
+    let line = Stream.getLine(stream)
+    let column = Stream.getColumn(stream)
+    let message = "Unexpected end of input, expected " ++
+      expected ++
+      " at line " ++
+      toString(line) ++
+      " column " ++
+      toString(column)
+    Err(UnexpectedEndOfInput{ message, line, column })
+  }
+  // parsers
+  let parseWhiteSpace = stream => {
+    while (!Stream.isEmpty(stream)) {
+      let c = Stream.Get.char(stream)
+      if (!Char.Ascii.isWhitespace(c)) break
+      ignore(Stream.GetAndAdvance.char(stream))
+    }
+  }
+  let parseAtom = stream => {
+    // atom -> symbol | number
+    // We buffer this input and then parse it
+    let start = Stream.getPosition(stream)
+    while (!Stream.isEmpty(stream)) {
+      let c = Stream.Get.char(stream)
+      // atoms are terminated by whitespace or parens, because they end in a list or before a new sexp
+      if (Char.Ascii.isWhitespace(c) || c == '(' || c == ')') break
+      Stream.advance(charByteCount(c), stream)
+    }
+    let end = Stream.getPosition(stream)
+    let bufferSize = end - start
+    if (bufferSize == 0) {
+      return buildUnexpectedEndOfInput(stream, "atom", "atom")
+    }
+    let symbol = String.decodeRange(
+      Stream.getBytes(stream),
+      String.UTF8,
+      start,
+      bufferSize
+    )
+    // TODO: Check if number or symbol
+    return Ok(Atom(symbol))
+  }
+  let rec parseSexp = stream => {
+    // sexp -> wss atom | list wss
+    parseWhiteSpace(stream)
+    if (Stream.isEmpty(stream)) {
+      return buildUnexpectedEndOfInput(stream, "atom or list", "sexp")
+    }
+    let value = match (Stream.Get.char(stream)) {
+      // Look ahead to see if we have a list
+      '(' => {
+        Stream.advance(1, stream)
+        parseList(stream)
+      },
+      _ => parseAtom(stream),
+    }
+    parseWhiteSpace(stream)
+    return value
+  }
+  and parseList = stream => {
+    // list -> wss sexp* ')'
+    // wss
+    parseWhiteSpace(stream)
+    // wss sexp*
+    let mut expressions = []
+    while (true) {
+      // wss
+      parseWhiteSpace(stream)
+      // sexp
+      match (parseSexp(stream)) {
+        Ok(sexp) => expressions = [sexp, ...expressions],
+        Err(_) => break,
+      }
+    }
+    // ')'
+    if (Stream.isEmpty(stream)) {
+      return buildUnexpectedEndOfInput(stream, ")", "list")
+    }
+    if (!Stream.ExpectAndAdvance.char(')', stream)) {
+      return buildUnexpectedCharError(stream, ')', "list")
+    }
+    return Ok(List(List.reverse(expressions)))
+  }
+  provide let parse = stream => parseSexp(stream)
+}
+
+provide let fromString = string => Parsing.parse(Stream.fromString(string))
+provide let fromBytes = bytes => Parsing.parse(Stream.fromBytes(bytes))
