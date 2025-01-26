@@ -5,10 +5,22 @@ on:
     branches: [main]
   pull_request:
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Github token permissions
+permissions:
+  contents: read
+
+# Allow one concurrent deployment
+concurrency:
+  group: 'checks'
+  cancel-in-progress: true
+
 jobs:
   checks:
     name: Run checks
-
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout project
         uses: actions/checkout@v3
@@ -19,22 +31,23 @@ jobs:
           repo: 'grain-lang/grain'
           version: 'tags/preview'
           file: 'grain-linux-x64'
-          target: grain
+          target: "bin/grain"
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # This is to test the CLI is working
-      - name: Log Grain version
-        if: matrix.os != 'windows-latest'
+      - name: Check Install
         run: |
-          ./grain -v
-
-      - name: Log Grain version
-        if: matrix.os == 'windows-latest'
+          chmod +x bin/grain
+          ./bin/grain -v
+      - name: Check Formatting
         run: |
-          ./grain.exe -v
-
-      - name: Run develop checks
-        run: |
-          bash develop.sh
+          ./bin/grain format . -o .
           git diff --exit-code --name-only
+      - name: Check Documentation
+        run: |
+          ./bin/grain doc . -o .
+          git diff --exit-code --name-only
+      - name: Run Tests
+        run: |
+          ./bin/grain ./grain-sexp/test.gr
+          ./bin/grain ./grain-stream/test.gr
       

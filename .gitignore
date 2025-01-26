@@ -2,6 +2,7 @@
 *.wasm
 *.gr.wasm
 *.gro
+**/test.md
 
 # Generic
 *.local.*

@@ -1,3 +1,4 @@
+# !/bin/bash
 # Run Formatter
 grain format . -o .
 # Run Graindoc

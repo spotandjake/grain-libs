@@ -68,7 +68,9 @@ provide let getBytes = stream => {
   stream.bytes
 }
 
+// Used to define variable length encodings
 module Internal {
+  // TODO: String, Encoding
   provide let char = stream => {
     let result = Bytes.getChar(stream.pos, stream.bytes)
     (charByteCount(result), result)
