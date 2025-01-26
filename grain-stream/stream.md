@@ -4,7 +4,7 @@ title: Stream
 
 A module for working with streams of bytes.
 
-Streams are used to read data from a byte array, and keep track of the current position in the stream.
+Streams are used to advance through and read data from a byte array.
 
 ```grain
 from "./stream.gr" include Stream
