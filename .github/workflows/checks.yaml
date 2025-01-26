@@ -20,7 +20,7 @@ jobs:
           version: 'tags/preview'
           file: 'grain-linux-x64'
           target: grain
-          token: ${{ secrets.GITHUB_TOKEN }
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # This is to test the CLI is working
       - name: Log Grain version
