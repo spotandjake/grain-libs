@@ -196,6 +196,7 @@ module Parsing {
     while (!Stream.isEmpty(stream)) {
       let c = Stream.Get.char(stream)
       if (!Char.Ascii.isWhitespace(c)) break
+      if (c == '\n') Stream.advanceLine(stream)
       ignore(Stream.GetAndAdvance.char(stream))
     }
   }
@@ -294,3 +295,5 @@ provide let fromString = string => Parsing.parse(Stream.fromString(string))
  * @example Sexp.fromBytes(b"add") == Ok(Atom("add"))
  */
 provide let fromBytes = bytes => Parsing.parse(Stream.fromBytes(bytes))
+
+// TODO: Sexp.toString

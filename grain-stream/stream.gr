@@ -1,3 +1,16 @@
+/**
+ * A module for working with streams of bytes.
+ *
+ * Streams are used to read data from a byte array, and keep track of the current position in the stream.
+ *
+ * @example from "./stream.gr" include Stream
+ * @example
+ * let bytes = Stream.fromString("hello")
+ * assert Stream.Get.char(bytes) == "h"
+ * assert Stream.GetAndAdvance.char(bytes) == "h"
+ * assert Stream.Expect.char("h", bytes) == true
+ * assert Stream.ExpectAndAdvance.char("e", bytes) == true
+ */
 module Stream
 
 from "runtime/numbers" include Numbers
@@ -8,7 +21,7 @@ from "int64" include Int64
 from "string" include String
 from "char" include Char
 
-provide let charByteCount = c => {
+let charByteCount = c => {
   // TODO: upstream Char.byteCount(encoding=UTf8, value)
   let usv = Char.code(c)
   if (usv <= 0x007F) {
@@ -22,6 +35,9 @@ provide let charByteCount = c => {
   }
 }
 
+/**
+ * A stream of bytes.
+ */
 abstract record Stream {
   bytes: Bytes,
   size: Number,
@@ -30,40 +46,136 @@ abstract record Stream {
   mut column: Number,
 }
 
+/**
+ * Create a stream from a byte object.
+ *
+ * @param bytes: The byte array to convert into a stream
+ * @returns: A stream object
+ *
+ * @example Stream.fromBytes(b"hello")
+ */
 provide let fromBytes = bytes => {
   { bytes, size: Bytes.length(bytes), pos: 0, line: 1, column: 1 }
 }
 
+/**
+ * Create a stream from a string.
+ *
+ * @param string: The string to convert into a stream
+ * @returns: A stream object
+ *
+ * @example Stream.fromString("hello")
+ */
 provide let fromString = string => {
   fromBytes(Bytes.fromString(string))
 }
 
+/**
+ * Checks if we have reached the end of the stream.
+ *
+ * @param stream: The stream to check
+ * @returns `true` if we are at the end of the stream, `false` otherwise
+ *
+ * @example
+ * let stream = Stream.fromString("hello")
+ * assert Stream.isEmpty(stream) == false
+ * Stream.advance(5, stream)
+ * assert Stream.isEmpty(stream) == true
+ */
 provide let isEmpty = stream => {
   stream.size == stream.pos
 }
 
+/**
+ * Advance the stream by a given number of bytes.
+ *
+ * @param byteCount: The number of bytes to advance the stream by
+ * @param stream: The stream to advance
+ *
+ * @example
+ * let stream = Stream.fromString("hello")
+ * Stream.advance(4, stream)
+ * assert Stream.Get.char(stream) == "0"
+ */
 provide let advance = (byteCount, stream) => {
   stream.pos += byteCount
   stream.column += stream.column
 }
 
+/**
+ * Advance the stream by one line.
+ *
+ * The columns is reset to 0 and the line count is incremented.
+ * line and column positions do not affect the position in the stream.
+ *
+ * @param stream: The stream to advance
+ *
+ * @example
+ * let stream = Stream.fromString("helloworld")
+ * Stream.advanceLine(stream)
+ * Stream.advanceLine(stream)
+ * assert Stream.Get.char(stream) == "h"
+ * assert Stream.getLine(stream) == 2
+ */
 provide let advanceLine = stream => {
   stream.line += 1
   stream.column = 1
 }
 
+/**
+ * Get the current position in the stream.
+ *
+ * @param stream: The stream to get the position of
+ *
+ * @example
+ * let stream = Stream.fromString("hello")
+ * assert Stream.getPosition(stream) == 0
+ * Stream.advance(1, stream)
+ * assert Stream.getPosition(stream) == 1
+ */
 provide let getPosition = stream => {
   stream.pos
 }
 
+/**
+ * Get the current line in the stream.
+ *
+ * @param stream: The stream to get the line of
+ *
+ * @example
+ * let stream = Stream.fromString("hello\nworld")
+ * assert Stream.getLine(stream) == 1
+ * Stream.advanceLine(stream)
+ * assert Stream.getLine(stream) == 2
+ */
 provide let getLine = stream => {
   stream.line
 }
 
+/**
+ * Get the current column in the stream.
+ *
+ * @param stream: The stream to get the column of
+ *
+ * @example
+ * let stream = Stream.fromString("hello\nworld")
+ * assert Stream.getColumn(stream) == 1
+ * Stream.advance(5, stream)
+ * assert Stream.getColumn(stream) == 6
+ * Stream.advanceLine(stream)
+ * assert Stream.getColumn(stream) == 1
+ */
 provide let getColumn = stream => {
   stream.column
 }
 
+/**
+ * Get the remaining bytes in the stream.
+ *
+ * @param stream: The stream to get the remaining bytes of
+ *
+ * @example Stream.getBytes(Stream.fromString("hello")) == b"hello"
+ */
 provide let getBytes = stream => {
   stream.bytes
 }
@@ -77,13 +189,44 @@ module Internal {
   }
 }
 
+/**
+ * Utilities for reading the next item in the stream.
+ *
+ * These functions read the next item in the stream, but do not advance the stream.
+ *
+ * @example
+ * let stream = Stream.fromString("hello")
+ * assert Stream.Get.char(stream) == "h"
+ */
 provide module Get {
+  /**
+   * Get the next byte in the stream.
+   *
+   * @param stream: The stream to get the byte from
+   * @returns: The next byte in the stream
+   *
+   * @example
+   * let stream = Stream.fromString("hello")
+   * assert Stream.Get.byte(stream) == 104
+   */
   provide let byte = stream => {
     Bytes.getUint8(stream.pos, stream.bytes)
   }
+  /**
+   * Get the next `byteCount` bytes in the stream.
+   *
+   * @param byteCount: The number of bytes to get
+   * @param stream: The stream to get the bytes from
+   * @returns: The next `byteCount` bytes in the stream
+   *
+   * @example
+   * let stream = Stream.fromString("hello")
+   * assert Stream.Get.bytes(2, stream) == b"he"
+   */
   provide let bytes = (byteCount, stream) => {
     Bytes.slice(stream.pos, byteCount, stream.bytes)
   }
+  // TODO: Finish documentation
   provide let int64 = stream => {
     Bytes.getInt64(stream.pos, stream.bytes)
   }
