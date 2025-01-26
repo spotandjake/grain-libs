@@ -1,1 +1,39 @@
 module SexpTest
+
+from "./sexp.gr" include Sexp
+
+// Sexp.fromString
+assert Sexp.fromString("add") == Ok(Atom("add"))
+assert Sexp.fromString("1") == Ok(Atom("1"))
+
+assert Sexp.fromString("()") == Ok(List([]))
+assert Sexp.fromString("( )") == Ok(List([]))
+assert Sexp.fromString("(add)") == Ok(List([Atom("add")]))
+assert Sexp.fromString("(add foo)") == Ok(List([Atom("add"), Atom("foo")]))
+assert Sexp.fromString("(add (add2))") ==
+  Ok(List([Atom("add"), List([Atom("add2")])]))
+assert Sexp.fromString("(add(add2 foo))") ==
+  Ok(List([Atom("add"), List([Atom("add2"), Atom("foo")])]))
+
+assert Sexp.fromString(" add") == Ok(Atom("add"))
+assert Sexp.fromString("add ") == Ok(Atom("add"))
+
+let isEndOfInputErr = err => match (err) {
+  Err(Sexp.UnexpectedEndOfInput{ _ }) => true,
+  _ => false,
+}
+let isUnexpectedCharErr = err => match (err) {
+  Err(Sexp.UnexpectedChar{ _ }) => true,
+  _ => false,
+}
+assert isEndOfInputErr(Sexp.fromString(""))
+assert isEndOfInputErr(Sexp.fromString("("))
+assert isEndOfInputErr(Sexp.fromString("(add"))
+assert isEndOfInputErr(Sexp.fromString("(add foo"))
+assert isUnexpectedCharErr(Sexp.fromString(")"))
+assert isUnexpectedCharErr(Sexp.fromString("add)"))
+assert isUnexpectedCharErr(Sexp.fromString("(add foo) add"))
+
+// Sexp.fromBytes
+assert Sexp.fromBytes(b"add") == Ok(Atom("add"))
+assert Sexp.fromBytes(b"(add foo)") == Ok(List([Atom("add"), Atom("foo")]))

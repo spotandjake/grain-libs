@@ -10,6 +10,11 @@
  * list -> '(' wss sexp* ')'
  * atom -> symbol | number
  * ```
+ *
+ * @example from "./grain-sexp.gr" include Sexp
+ *
+ * @example Sexp.fromString("(add foo)") == Ok(List([Atom("add"), Atom("foo")]))
+ *
  */
 module Sexp
 
@@ -19,13 +24,8 @@ from "buffer" include Buffer
 from "char" include Char
 from "list" include List
 from "string" include String
-// Stream Libs
-from "runtime/numbers" include Numbers
-use Numbers.{ coerceUint8ToNumber }
-from "uint8" include Uint8
-from "int64" include Int64
 
-provide let charByteCount = c => {
+let charByteCount = c => {
   // TODO: upstream Char.byteCount(encoding=UTf8, value)
   let usv = Char.code(c)
   if (usv <= 0x007F) {
@@ -39,6 +39,7 @@ provide let charByteCount = c => {
   }
 }
 
+// Trimmed down from grain-stream
 module Stream {
   abstract record Stream {
     bytes: Bytes,
@@ -123,13 +124,41 @@ module Stream {
   }
 }
 
+/**
+ * Represents an S-expression.
+ *
+ * S-expressions are a simple and powerful way to represent data and code.
+ *
+ * @example Sexp.fromString("(add foo)") == Ok(List([Atom("add"), Atom("foo")]))
+ */
 provide enum rec Sexp {
+  /**
+   * Represents an S-expression edge node.
+   */
   Atom(String),
+  /**
+   * Represents an S-expression list node.
+   */
   List(List<Sexp>),
 }
 
+/**
+ * Represents an error that occurred while parsing an S-expression.
+ */
 provide enum ParseError {
+  /**
+   * An error that occurs when an unexpected character is found during parsing.
+   *
+   * This error will happen either when a closing parenthesis is missing, or
+   * when we are done parsing and there are still unparsed characters.
+   */
   UnexpectedChar{ message: String, line: Number, column: Number },
+  /**
+   * An error that occurs when end of input is reached unexpectedly during parsing.
+   *
+   * This error could occur when the file ends before a closing parenthesis is found, or
+   * when an atom is expected but the file ends.
+   */
   UnexpectedEndOfInput{ message: String, line: Number, column: Number },
 }
 
@@ -142,7 +171,7 @@ module Parsing {
     let message = "Unexpected character found '" ++
       Char.toString(found) ++
       "', expected " ++
-      Char.toString(expected) ++
+      expected ++
       " in " ++
       rule ++
       " at line " ++
@@ -231,12 +260,37 @@ module Parsing {
       return buildUnexpectedEndOfInput(stream, ")", "list")
     }
     if (!Stream.ExpectAndAdvance.char(')', stream)) {
-      return buildUnexpectedCharError(stream, ')', "list")
+      return buildUnexpectedCharError(stream, ")", "list")
     }
     return Ok(List(List.reverse(expressions)))
   }
-  provide let parse = stream => parseSexp(stream)
+  provide let parse = stream => {
+    let value = parseSexp(stream)
+    if (!Stream.isEmpty(stream)) {
+      return buildUnexpectedCharError(stream, "end of input", "sexp")
+    }
+    return value
+  }
 }
 
+/**
+ * Parse an S-expression from a string.
+ *
+ * @param string: The string to parse
+ * @returns The parsed S-expression
+ *
+ * @example Sexp.fromString("(add foo)") == Ok(List([Atom("add"), Atom("foo")]))
+ * @example Sexp.fromString("add") == Ok(Atom("add"))
+ */
 provide let fromString = string => Parsing.parse(Stream.fromString(string))
+
+/**
+ * Parse an S-expression from a string.
+ *
+ * @param bytes: The string to parse
+ * @returns The parsed S-expression
+ *
+ * @example Sexp.fromBytes(b"(add foo)") == Ok(List([Atom("add"), Atom("foo")]))
+ * @example Sexp.fromBytes(b"add") == Ok(Atom("add"))
+ */
 provide let fromBytes = bytes => Parsing.parse(Stream.fromBytes(bytes))
