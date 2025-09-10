@@ -95,11 +95,11 @@ when we are done parsing and there are still unparsed characters.
 
 Fields:
 
-|name|type|description|
-|----|----|-----------|
-|`message`|`String`|An error that occurs when an unexpected character is found during parsing.<br/><br/>This error will happen either when a closing parenthesis is missing, or<br/>when we are done parsing and there are still unparsed characters.|
-|`line`|`Number`|An error that occurs when an unexpected character is found during parsing.<br/><br/>This error will happen either when a closing parenthesis is missing, or<br/>when we are done parsing and there are still unparsed characters.|
-|`column`|`Number`|An error that occurs when an unexpected character is found during parsing.<br/><br/>This error will happen either when a closing parenthesis is missing, or<br/>when we are done parsing and there are still unparsed characters.|
+| name      | type     | description                                                                                                                                                                                                                       |
+| --------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message` | `String` | An error that occurs when an unexpected character is found during parsing.<br/><br/>This error will happen either when a closing parenthesis is missing, or<br/>when we are done parsing and there are still unparsed characters. |
+| `line`    | `Number` | An error that occurs when an unexpected character is found during parsing.<br/><br/>This error will happen either when a closing parenthesis is missing, or<br/>when we are done parsing and there are still unparsed characters. |
+| `column`  | `Number` | An error that occurs when an unexpected character is found during parsing.<br/><br/>This error will happen either when a closing parenthesis is missing, or<br/>when we are done parsing and there are still unparsed characters. |
 
 ```grain
 UnexpectedEndOfInput{
@@ -116,11 +116,11 @@ when an atom is expected but the file ends.
 
 Fields:
 
-|name|type|description|
-|----|----|-----------|
-|`message`|`String`|An error that occurs when end of input is reached unexpectedly during parsing.<br/><br/>This error could occur when the file ends before a closing parenthesis is found, or<br/>when an atom is expected but the file ends.|
-|`line`|`Number`|An error that occurs when end of input is reached unexpectedly during parsing.<br/><br/>This error could occur when the file ends before a closing parenthesis is found, or<br/>when an atom is expected but the file ends.|
-|`column`|`Number`|An error that occurs when end of input is reached unexpectedly during parsing.<br/><br/>This error could occur when the file ends before a closing parenthesis is found, or<br/>when an atom is expected but the file ends.|
+| name      | type     | description                                                                                                                                                                                                                 |
+| --------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message` | `String` | An error that occurs when end of input is reached unexpectedly during parsing.<br/><br/>This error could occur when the file ends before a closing parenthesis is found, or<br/>when an atom is expected but the file ends. |
+| `line`    | `Number` | An error that occurs when end of input is reached unexpectedly during parsing.<br/><br/>This error could occur when the file ends before a closing parenthesis is found, or<br/>when an atom is expected but the file ends. |
+| `column`  | `Number` | An error that occurs when end of input is reached unexpectedly during parsing.<br/><br/>This error could occur when the file ends before a closing parenthesis is found, or<br/>when an atom is expected but the file ends. |
 
 ## Values
 
@@ -129,22 +129,22 @@ Functions and constants included in the Sexp module.
 ### Sexp.**fromString**
 
 ```grain
-fromString : (string: String) => Result<Sexp, ParseError>
+fromString: (string: String) => Result<Sexp, ParseError>
 ```
 
 Parse an S-expression from a string.
 
 Parameters:
 
-|param|type|description|
-|-----|----|-----------|
-|`string`|`String`|The string to parse|
+| param    | type     | description         |
+| -------- | -------- | ------------------- |
+| `string` | `String` | The string to parse |
 
 Returns:
 
-|type|description|
-|----|-----------|
-|`Result<Sexp, ParseError>`|The parsed S-expression|
+| type                       | description             |
+| -------------------------- | ----------------------- |
+| `Result<Sexp, ParseError>` | The parsed S-expression |
 
 Examples:
 
@@ -159,22 +159,22 @@ Sexp.fromString("add") == Ok(Atom("add"))
 ### Sexp.**fromBytes**
 
 ```grain
-fromBytes : (bytes: Bytes) => Result<Sexp, ParseError>
+fromBytes: (bytes: Bytes) => Result<Sexp, ParseError>
 ```
 
 Parse an S-expression from a string.
 
 Parameters:
 
-|param|type|description|
-|-----|----|-----------|
-|`bytes`|`Bytes`|The string to parse|
+| param   | type    | description         |
+| ------- | ------- | ------------------- |
+| `bytes` | `Bytes` | The string to parse |
 
 Returns:
 
-|type|description|
-|----|-----------|
-|`Result<Sexp, ParseError>`|The parsed S-expression|
+| type                       | description             |
+| -------------------------- | ----------------------- |
+| `Result<Sexp, ParseError>` | The parsed S-expression |
 
 Examples:
 

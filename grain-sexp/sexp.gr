@@ -193,27 +193,27 @@ module Parsing {
     let found = Stream.Get.char(stream)
     let line = Stream.getLine(stream)
     let column = Stream.getColumn(stream)
-    let message = "Unexpected character found '" ++
-      Char.toString(found) ++
-      "', expected " ++
-      expected ++
-      " in " ++
-      rule ++
-      " at line " ++
-      toString(line) ++
-      " column " ++
-      toString(column)
+    let message = "Unexpected character found '"
+      ++ Char.toString(found)
+      ++ "', expected "
+      ++ expected
+      ++ " in "
+      ++ rule
+      ++ " at line "
+      ++ toString(line)
+      ++ " column "
+      ++ toString(column)
     Err(UnexpectedChar{ message, line, column })
   }
   let buildUnexpectedEndOfInput = (stream, expected, rule) => {
     let line = Stream.getLine(stream)
     let column = Stream.getColumn(stream)
-    let message = "Unexpected end of input, expected " ++
-      expected ++
-      " at line " ++
-      toString(line) ++
-      " column " ++
-      toString(column)
+    let message = "Unexpected end of input, expected "
+      ++ expected
+      ++ " at line "
+      ++ toString(line)
+      ++ " column "
+      ++ toString(column)
     Err(UnexpectedEndOfInput{ message, line, column })
   }
   // parsers
